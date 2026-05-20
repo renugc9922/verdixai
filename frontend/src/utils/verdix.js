@@ -1,0 +1,139 @@
+import { BarChart3, Bot, FileImage, Leaf, ShieldCheck, Sparkles } from 'lucide-react'
+
+export const pageVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+}
+
+export const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+}
+
+export const features = [
+  {
+    icon: Leaf,
+    title: 'Crop Disease Detection',
+    description: 'Instantly detect diseases from crop leaf images with AI-powered analysis and confidence scores.',
+  },
+  {
+    icon: Sparkles,
+    title: 'AI Recommendations',
+    description: 'Get treatment and prevention steps tailored to the detected disease, severity, and crop type.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Field Ready Insights',
+    description: 'Built for fast, practical decision-making with premium dashboards and crop health summaries.',
+  },
+  {
+    icon: Bot,
+    title: 'AI Assistant',
+    description: 'Ask follow-up questions and get contextual advice from the crop health assistant workflow.',
+  },
+]
+
+export const loadingTexts = ['Analyzing Crop Patterns...', 'Running AI Detection...', 'Generating AI Report...']
+
+export const sampleResult = {
+  diseaseName: 'Tomato Late Blight',
+  confidenceScore: 94,
+  severityLevel: 'High',
+  symptoms: 'Brown lesions, yellowing leaves, dark patches',
+  causes: 'Fungal-like pathogen due to high humidity and wet leaves',
+  treatment: 'Remove infected leaves, use copper-based fungicide, improve air circulation',
+  prevention: 'Avoid overhead watering, maintain spacing, inspect plants regularly',
+}
+
+export function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+export function formatDateTime(value) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+export function deriveCropType(fileName) {
+  const normalizedName = fileName.toLowerCase()
+
+  if (normalizedName.includes('tomato')) return 'Tomato Leaf'
+  if (normalizedName.includes('maize') || normalizedName.includes('corn')) return 'Maize Leaf'
+  if (normalizedName.includes('wheat')) return 'Wheat Leaf'
+  if (normalizedName.includes('rice')) return 'Rice Leaf'
+  return 'Crop Leaf'
+}
+
+export function getSeverityTone(severity) {
+  switch (severity) {
+    case 'High':
+      return 'text-amber-300 bg-amber-400/10 border-amber-300/15'
+    case 'Medium':
+      return 'text-sky-300 bg-sky-400/10 border-sky-300/15'
+    case 'Low':
+    default:
+      return 'text-emerald-300 bg-emerald-400/10 border-emerald-300/15'
+  }
+}
+
+export const dashboardStats = [
+  { label: 'Total Scans', value: '1,284', change: '+12.4%', icon: BarChart3 },
+  { label: 'Healthy Crops', value: '872', change: '68%', icon: Leaf },
+  { label: 'Diseases Detected', value: '164', change: '-4.8%', icon: FileImage },
+  { label: 'Avg Confidence', value: '96.2%', change: '+1.1%', icon: ShieldCheck },
+]
+
+export const dashboardDetections = [
+  {
+    crop: 'Maize Field #27',
+    disease: 'Early Leaf Blight',
+    confidence: '96%',
+    date: 'May 20, 2026',
+    severity: 'High',
+  },
+  {
+    crop: 'Tomato Greenhouse #04',
+    disease: 'Healthy Growth',
+    confidence: '99%',
+    date: 'May 19, 2026',
+    severity: 'Low',
+  },
+  {
+    crop: 'Wheat Plot #12',
+    disease: 'Powdery Mildew',
+    confidence: '92%',
+    date: 'May 18, 2026',
+    severity: 'Medium',
+  },
+]
+
+export const assistantPromptChips = [
+  'Best treatment for early fungal stress?',
+  'How can I prevent recurring leaf blight?',
+  'What is the safest follow-up spray plan?',
+]
+
+export const assistantResponses = [
+  {
+    role: 'user',
+    message: 'The result says High severity. What should I do first?',
+  },
+  {
+    role: 'assistant',
+    message: 'Start by removing infected leaves and isolating the affected plant rows. Then apply a copper-based fungicide and avoid watering the foliage directly.',
+  },
+  {
+    role: 'assistant',
+    message: 'If the spread is rapid, inspect nearby plants daily for new lesions and improve spacing for airflow immediately.',
+  },
+]
