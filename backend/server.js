@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const dotenv = require('dotenv')
 const path = require('path')
+const fs = require('fs')
 const detectionRoutes = require('./routes/detectionRoutes')
 const assistantRoutes = require('./routes/assistantRoutes')
 
@@ -9,10 +10,15 @@ dotenv.config()
 
 const app = express()
 const port = process.env.PORT || 5000
+const uploadsDir = path.join(__dirname, 'uploads')
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
 
 app.use(cors())
 app.use(express.json())
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use('/uploads', express.static(uploadsDir))
 
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'VERDIXAI backend is running' })

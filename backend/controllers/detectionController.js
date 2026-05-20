@@ -13,6 +13,8 @@ async function analyzeCropImage(req, res) {
       ...analysis,
     })
   } catch (error) {
+    console.error('Detection analysis failed:', error)
+
     return res.status(500).json({
       success: false,
       message: 'Unable to analyze crop image at this time.',
