@@ -10,8 +10,6 @@ export default function DetectPage() {
   const {
     fileInputRef,
     uploadedCrop,
-    detectedCropKey,
-    geminiAvailable,
     isDragging,
     setIsDragging,
     isAnalyzing,
@@ -116,7 +114,7 @@ export default function DetectPage() {
               isDragging={isDragging}
               actions={
                 <>
-                  <button type="button" onClick={handleAnalyze} disabled={!uploadedCrop || isAnalyzing || (geminiAvailable !== true && !detectedCropKey)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3.5 font-semibold text-[#04110b] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-400/35 disabled:text-[#04110b]/60">
+                  <button type="button" onClick={handleAnalyze} disabled={!uploadedCrop || isAnalyzing} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3.5 font-semibold text-[#04110b] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-400/35 disabled:text-[#04110b]/60">
                     <Upload className="h-4 w-4" />
                     Analyze Crop
                   </button>

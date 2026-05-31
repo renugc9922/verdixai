@@ -47,21 +47,6 @@ export const supportedDemoFilenames = [
   'apple_scab.jpg',
 ]
 
-export const demoCropOptions = [
-  { value: '', label: 'Auto detect' },
-  { value: 'strawberry', label: 'Strawberry' },
-  { value: 'tomato', label: 'Tomato' },
-  { value: 'potato', label: 'Potato' },
-  { value: 'mango', label: 'Mango' },
-  { value: 'rice', label: 'Rice' },
-  { value: 'cotton', label: 'Cotton' },
-  { value: 'corn', label: 'Corn' },
-  { value: 'grape', label: 'Grape' },
-  { value: 'apple', label: 'Apple' },
-]
-
-const demoCropLabelMap = Object.fromEntries(demoCropOptions.filter((item) => item.value).map((item) => [item.value, item.label]))
-
 export const unknownAnalysisResult = {
   crop: 'Unknown',
   disease: 'Unable to identify clearly',
@@ -89,10 +74,6 @@ export function inferDemoCropKeyFromFileName(fileName = '') {
   return ''
 }
 
-export function getDemoCropLabel(cropKey) {
-  return demoCropLabelMap[cropKey] || 'Unknown crop'
-}
-
 export function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -113,12 +94,6 @@ export function formatDateTime(value) {
 }
 
 export function deriveCropType(fileName) {
-  const cropKey = inferDemoCropKeyFromFileName(fileName)
-
-  if (cropKey) {
-    return getDemoCropLabel(cropKey)
-  }
-
   if (String(fileName).toLowerCase().includes('leaf') || String(fileName).toLowerCase().includes('plant')) return 'Uploaded Crop'
   if (String(fileName).toLowerCase().includes('image') || String(fileName).toLowerCase().includes('scan')) return 'Uploaded Crop'
   return 'Unknown crop'

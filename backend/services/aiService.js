@@ -192,9 +192,7 @@ async function getGeminiAnalysis(file) {
 }
 
 async function analyzeCropImageFromFile(file) {
-  const fallbackKey = resolveDemoDiseaseKey({
-    fileName: file?.originalname,
-  })
+  const fallbackKey = resolveDemoDiseaseKey(file?.originalname)
 
   console.log('[VERDIXAI] Demo fallback resolver', {
     fileName: file?.originalname,

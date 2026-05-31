@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { analyzeCropImage, getBackendHealth } from '../services/detectionApi'
+import { analyzeCropImage } from '../services/detectionApi'
 import { clearCropResult, clearCropSession, loadCropSession, saveCropResult, saveCropSession } from '../services/storage'
 import { deriveCropType, inferDemoCropKeyFromFileName } from '../utils/verdix'
 
@@ -12,47 +12,11 @@ export function useDetection() {
   const [uploadedCrop, setUploadedCrop] = useState(() => loadCropSession())
   const [uploadedFile, setUploadedFile] = useState(null)
   const [detectedCropKey, setDetectedCropKey] = useState('')
-  const [geminiAvailable, setGeminiAvailable] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisStage, setAnalysisStage] = useState(0)
   const [progress, setProgress] = useState(12)
   const [errorMessage, setErrorMessage] = useState('')
-
-  useEffect(() => {
-    if (!uploadedFile) {
-      return
-    }
-
-    if (geminiAvailable === false && !detectedCropKey) {
-      setErrorMessage('This image is not available in offline demo mode. Please use a supported demo image or try again when AI service is available.')
-      return
-    }
-
-    if (errorMessage === 'This image is not available in offline demo mode. Please use a supported demo image or try again when AI service is available.') {
-      setErrorMessage('')
-    }
-  }, [detectedCropKey, errorMessage, geminiAvailable, uploadedFile])
-
-  useEffect(() => {
-    let isMounted = true
-
-    getBackendHealth()
-      .then((health) => {
-        if (isMounted) {
-          setGeminiAvailable(Boolean(health?.geminiAvailable))
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setGeminiAvailable(false)
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   useEffect(() => {
     if (!isAnalyzing) {
@@ -117,14 +81,6 @@ export function useDetection() {
       return
     }
 
-    const canUseGemini = geminiAvailable === true
-    const canUseOfflineDemo = Boolean(detectedCropKey)
-
-    if (!canUseGemini && !canUseOfflineDemo) {
-      setErrorMessage('This image is not available in offline demo mode. Please use a supported demo image or try again when AI service is available.')
-      return
-    }
-
     saveCropSession(uploadedCrop)
     clearCropResult()
     setProgress(12)
@@ -155,7 +111,6 @@ export function useDetection() {
     setUploadedCrop(null)
     setUploadedFile(null)
     setDetectedCropKey('')
-    setGeminiAvailable(null)
     setErrorMessage('')
 
     if (fileInputRef.current) {
@@ -172,7 +127,6 @@ export function useDetection() {
     setUploadedCrop,
     uploadedFile,
     detectedCropKey,
-    geminiAvailable,
     isDragging,
     setIsDragging,
     isAnalyzing,

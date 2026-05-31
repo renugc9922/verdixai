@@ -10,17 +10,13 @@ export async function getBackendHealth() {
   return response.json()
 }
 
-export async function analyzeCropImage(file, cropHint = '') {
+export async function analyzeCropImage(file) {
   if (!file) {
     throw new Error('Please select a crop image before analyzing.')
   }
 
   const formData = new FormData()
   formData.append('cropImage', file)
-
-  if (cropHint) {
-    formData.append('cropHint', cropHint)
-  }
 
   let response
 

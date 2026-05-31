@@ -16,13 +16,7 @@ function matchDemoDiseaseKey(fileName = '') {
   return 'unknown'
 }
 
-function resolveDemoDiseaseKey({ fileName = '', cropHint = '' } = {}) {
-  const normalizedHint = String(cropHint).toLowerCase()
-
-  if (supportedDemoCropKeys.has(normalizedHint)) {
-    return normalizedHint
-  }
-
+function resolveDemoDiseaseKey(fileName = '') {
   return matchDemoDiseaseKey(fileName)
 }
 
