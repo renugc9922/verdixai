@@ -91,7 +91,15 @@ export default function ResultPage() {
       </header>
 
       <main className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8 lg:py-10">
-        {result ? <ResultCard result={result} /> : <div className="rounded-[2rem] border border-white/10 bg-white/6 p-6 text-emerald-100/70 backdrop-blur-xl">No analysis result found. Upload a crop image to start a new scan.</div>}
+        <div className="space-y-4 lg:col-span-1">
+          {result?.analysisNotice ? (
+            <div className="rounded-[1.5rem] border border-amber-300/15 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 backdrop-blur-xl">
+              {result.analysisNotice}
+            </div>
+          ) : null}
+
+          {result ? <ResultCard result={result} /> : <div className="rounded-[2rem] border border-white/10 bg-white/6 p-6 text-emerald-100/70 backdrop-blur-xl">No analysis result found. Upload a crop image to start a new scan.</div>}
+        </div>
 
         <section className="space-y-5">
           <div className="rounded-[2rem] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-6">

@@ -12,6 +12,8 @@ const UNKNOWN_ANALYSIS_RESULT = {
   prevention: 'Capture the leaf in proper lighting.',
 }
 
+const QUOTA_FALLBACK_NOTICE = 'AI quota exceeded. Showing a safe fallback result with low confidence.'
+
 function buildAnalysisPrompt() {
   return [
     'You are an expert agricultural plant pathologist.',
@@ -221,7 +223,12 @@ async function analyzeCropImageFromFile(file) {
         let clientMessage = `Gemini request failed: ${geminiError?.message || 'Unknown Gemini error'}`
 
         if (errorStatus === 429) {
-          clientMessage = 'Gemini quota exceeded or rate limited. Check Gemini billing/quota and retry.'
+          console.warn('[VERDIXAI] Gemini quota exceeded; returning safe fallback analysis')
+          return {
+            ...UNKNOWN_ANALYSIS_RESULT,
+            analysisMode: 'quota-fallback',
+            analysisNotice: QUOTA_FALLBACK_NOTICE,
+          }
         } else if (errorStatus === 401 || errorStatus === 403) {
           clientMessage = 'Gemini authentication failed. Verify the API key and project permissions.'
         }
