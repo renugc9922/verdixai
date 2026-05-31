@@ -35,14 +35,15 @@ export const features = [
 
 export const loadingTexts = ['Analyzing Crop Patterns...', 'Running AI Detection...', 'Generating AI Report...']
 
-export const sampleResult = {
-  diseaseName: 'Tomato Late Blight',
-  confidenceScore: 94,
-  severityLevel: 'High',
-  symptoms: 'Brown lesions, yellowing leaves, dark patches',
-  causes: 'Fungal-like pathogen due to high humidity and wet leaves',
-  treatment: 'Remove infected leaves, use copper-based fungicide, improve air circulation',
-  prevention: 'Avoid overhead watering, maintain spacing, inspect plants regularly',
+export const unknownAnalysisResult = {
+  crop: 'Unknown',
+  disease: 'Unable to identify clearly',
+  confidence: 25,
+  severity: 'Unknown',
+  symptoms: 'Insufficient visual evidence.',
+  causes: 'Unable to determine.',
+  treatment: 'Please upload a clearer image.',
+  prevention: 'Capture the leaf in proper lighting.',
 }
 
 export function fileToDataUrl(file) {
@@ -67,11 +68,9 @@ export function formatDateTime(value) {
 export function deriveCropType(fileName) {
   const normalizedName = fileName.toLowerCase()
 
-  if (normalizedName.includes('tomato')) return 'Tomato Leaf'
-  if (normalizedName.includes('maize') || normalizedName.includes('corn')) return 'Maize Leaf'
-  if (normalizedName.includes('wheat')) return 'Wheat Leaf'
-  if (normalizedName.includes('rice')) return 'Rice Leaf'
-  return 'Crop Leaf'
+  if (normalizedName.includes('leaf') || normalizedName.includes('plant')) return 'Uploaded Crop'
+  if (normalizedName.includes('image') || normalizedName.includes('scan')) return 'Uploaded Crop'
+  return 'Crop Preview'
 }
 
 export function getSeverityTone(severity) {
@@ -80,6 +79,8 @@ export function getSeverityTone(severity) {
       return 'text-amber-300 bg-amber-400/10 border-amber-300/15'
     case 'Medium':
       return 'text-sky-300 bg-sky-400/10 border-sky-300/15'
+    case 'Unknown':
+      return 'text-zinc-300 bg-zinc-400/10 border-zinc-300/15'
     case 'Low':
     default:
       return 'text-emerald-300 bg-emerald-400/10 border-emerald-300/15'
@@ -102,7 +103,7 @@ export const dashboardDetections = [
     severity: 'High',
   },
   {
-    crop: 'Tomato Greenhouse #04',
+    crop: 'Strawberry Greenhouse #04',
     disease: 'Healthy Growth',
     confidence: '99%',
     date: 'May 19, 2026',

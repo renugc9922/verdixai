@@ -5,17 +5,17 @@ import ChatBubble from '../components/ChatBubble'
 import Loader from '../components/Loader'
 import { sendAssistantMessage } from '../services/assistantApi'
 import { loadCropResult, loadDetectionHistory } from '../services/storage'
-import { assistantPromptChips, assistantResponses, sampleResult } from '../utils/verdix'
+import { assistantPromptChips, assistantResponses, unknownAnalysisResult } from '../utils/verdix'
 
 function getLatestDiseaseContext() {
   const storedResult = loadCropResult()
 
   if (storedResult) {
     return {
-      diseaseName: storedResult.diseaseName ?? sampleResult.diseaseName,
-      cropType: storedResult.cropType ?? 'Tomato',
-      severity: storedResult.severity ?? storedResult.severityLevel ?? sampleResult.severityLevel,
-      confidence: storedResult.confidence ?? storedResult.confidenceScore ?? sampleResult.confidenceScore,
+      disease: storedResult.disease,
+      crop: storedResult.crop,
+      severity: storedResult.severity,
+      confidence: storedResult.confidence,
     }
   }
 
@@ -24,18 +24,15 @@ function getLatestDiseaseContext() {
 
   if (latestHistoryItem) {
     return {
-      diseaseName: latestHistoryItem.diseaseName ?? sampleResult.diseaseName,
-      cropType: latestHistoryItem.cropType ?? 'Tomato',
-      severity: latestHistoryItem.severityLevel ?? sampleResult.severityLevel,
-      confidence: latestHistoryItem.confidenceScore ?? sampleResult.confidenceScore,
+      disease: latestHistoryItem.disease,
+      crop: latestHistoryItem.crop,
+      severity: latestHistoryItem.severity,
+      confidence: latestHistoryItem.confidence,
     }
   }
 
   return {
-    diseaseName: sampleResult.diseaseName,
-    cropType: 'Tomato',
-    severity: sampleResult.severityLevel,
-    confidence: sampleResult.confidenceScore,
+    ...unknownAnalysisResult,
   }
 }
 
@@ -103,7 +100,7 @@ export default function AssistantPage() {
             <p className="text-sm uppercase tracking-[0.26em] text-emerald-100/55">Assistant chat</p>
             <h1 className="mt-2 font-display text-3xl text-white">Ask about treatments, prevention, and next steps</h1>
             <p className="mt-3 text-sm leading-6 text-emerald-100/60">
-              Current context: {diseaseContext.diseaseName} on {diseaseContext.cropType} with {diseaseContext.severity} severity.
+              Current context: {diseaseContext.disease} on {diseaseContext.crop} with {diseaseContext.severity} severity.
             </p>
           </div>
 

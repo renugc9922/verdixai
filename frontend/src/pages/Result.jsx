@@ -3,23 +3,14 @@ import { Link } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
 import ResultCard from '../components/ResultCard'
 import { appendDetectionHistory, loadCropResult, loadCropSession } from '../services/storage'
-import { formatDateTime, sampleResult } from '../utils/verdix'
+import { formatDateTime } from '../utils/verdix'
 
 export default function ResultPage() {
   const uploadedCrop = loadCropSession()
   const storedResult = loadCropResult()
   const savedHistoryRef = useRef(false)
 
-  const result = {
-    diseaseName: storedResult?.diseaseName ?? sampleResult.diseaseName,
-    confidence: storedResult?.confidence ?? storedResult?.confidenceScore ?? sampleResult.confidenceScore,
-    severity: storedResult?.severity ?? storedResult?.severityLevel ?? sampleResult.severityLevel,
-    cropType: storedResult?.cropType ?? uploadedCrop?.cropType ?? 'Crop Leaf',
-    symptoms: storedResult?.symptoms ?? sampleResult.symptoms,
-    causes: storedResult?.causes ?? sampleResult.causes,
-    treatment: storedResult?.treatment ?? sampleResult.treatment,
-    prevention: storedResult?.prevention ?? sampleResult.prevention,
-  }
+  const result = storedResult || null
 
   useEffect(() => {
     if (!uploadedCrop || !result || savedHistoryRef.current) {
@@ -28,21 +19,31 @@ export default function ResultPage() {
 
     appendDetectionHistory({
       uploadedImage: uploadedCrop.previewUrl,
-      diseaseName: result.diseaseName,
-      confidenceScore: result.confidence,
-      severityLevel: result.severity,
+      crop: result.crop,
+      disease: result.disease,
+      confidence: result.confidence,
+      severity: result.severity,
+      symptoms: result.symptoms,
+      causes: result.causes,
+      treatment: result.treatment,
+      prevention: result.prevention,
       scanDate: new Date().toISOString(),
-      cropType: uploadedCrop.cropType,
+      fileName: uploadedCrop.fileName,
     })
     savedHistoryRef.current = true
   }, [uploadedCrop, result])
 
   const handleDownload = () => {
+    if (!result) {
+      return
+    }
+
     const report = [
-      `Disease Name: ${result.diseaseName}`,
-      `Confidence Score: ${result.confidence}%`,
-      `Severity Level: ${result.severity}`,
-      `Symptoms: ${Array.isArray(result.symptoms) ? result.symptoms.join(', ') : result.symptoms}`,
+      `Crop: ${result.crop}`,
+      `Disease: ${result.disease}`,
+      `Confidence: ${result.confidence}%`,
+      `Severity: ${result.severity}`,
+      `Symptoms: ${result.symptoms}`,
       `Causes: ${result.causes}`,
       `Treatment: ${result.treatment}`,
       `Prevention: ${result.prevention}`,
@@ -90,9 +91,7 @@ export default function ResultPage() {
       </header>
 
       <main className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8 lg:py-10">
-        <ResultCard
-          result={result}
-        />
+        {result ? <ResultCard result={result} /> : <div className="rounded-[2rem] border border-white/10 bg-white/6 p-6 text-emerald-100/70 backdrop-blur-xl">No analysis result found. Upload a crop image to start a new scan.</div>}
 
         <section className="space-y-5">
           <div className="rounded-[2rem] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-6">

@@ -1,4 +1,4 @@
-const { getSampleAnalysis } = require('../services/aiService')
+const { analyzeCropImageFromFile } = require('../services/aiService')
 
 async function analyzeCropImage(req, res) {
   try {
@@ -6,12 +6,25 @@ async function analyzeCropImage(req, res) {
       return res.status(400).json({ success: false, message: 'Please upload an image using the cropImage field.' })
     }
 
-    const analysis = await getSampleAnalysis()
+    console.log('[VERDIXAI] Uploaded image received', {
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path,
+    })
 
-    return res.json({
+    console.log('[VERDIXAI] Sending uploaded image to AI analysis')
+    const analysis = await analyzeCropImageFromFile(req.file)
+    console.log('[VERDIXAI] AI analysis response', analysis)
+
+    const apiResponse = {
       success: true,
       ...analysis,
-    })
+    }
+
+    console.log('[VERDIXAI] Final API response', apiResponse)
+
+    return res.json(apiResponse)
   } catch (error) {
     console.error('Detection analysis failed:', error)
 

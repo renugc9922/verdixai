@@ -13,8 +13,11 @@ export default function HistoryPage() {
 
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
-      const matchesSearch = [item.cropType, item.diseaseName, item.severityLevel].join(' ').toLowerCase().includes(search.toLowerCase())
-      const matchesSeverity = severity === 'All' || item.severityLevel === severity
+      const crop = item.crop ?? ''
+      const disease = item.disease ?? ''
+      const severityLevel = item.severity ?? ''
+      const matchesSearch = [crop, disease, severityLevel].join(' ').toLowerCase().includes(search.toLowerCase())
+      const matchesSeverity = severity === 'All' || severityLevel === severity
       return matchesSearch && matchesSeverity
     })
   }, [history, search, severity])
@@ -26,7 +29,7 @@ export default function HistoryPage() {
 
   const handleDownload = () => {
     const report = filteredHistory
-      .map((item) => `${item.scanDate} | ${item.cropType} | ${item.diseaseName} | ${item.confidenceScore}% | ${item.severityLevel}`)
+      .map((item) => `${item.scanDate} | ${item.crop} | ${item.disease} | ${item.confidence}% | ${item.severity}`)
       .join('\n')
     downloadTextFile('verdixai-history.txt', report || 'No detections found.')
   }
@@ -86,19 +89,19 @@ export default function HistoryPage() {
 
         <section className="mt-6 grid gap-4">
           {filteredHistory.length ? filteredHistory.map((item) => (
-            <article key={`${item.scanDate}-${item.cropType}`} className="rounded-[1.8rem] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-6">
+            <article key={`${item.scanDate}-${item.crop}`} className="rounded-[1.8rem] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-4">
-                  <img src={item.uploadedImage} alt={item.cropType} className="h-20 w-20 rounded-2xl border border-white/10 object-cover" />
+                  <img src={item.uploadedImage} alt={item.crop} className="h-20 w-20 rounded-2xl border border-white/10 object-cover" />
                   <div>
-                    <p className="font-display text-2xl text-white">{item.diseaseName}</p>
-                    <p className="mt-1 text-sm text-emerald-100/65">{item.cropType}</p>
+                    <p className="font-display text-2xl text-white">{item.disease}</p>
+                    <p className="mt-1 text-sm text-emerald-100/65">{item.crop}</p>
                     <p className="mt-2 text-sm text-emerald-100/55">{formatDateTime(item.scanDate)}</p>
                   </div>
                 </div>
 
-                <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getSeverityTone(item.severityLevel)}`}>
-                  {item.severityLevel}
+                <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getSeverityTone(item.severity)}`}>
+                  {item.severity}
                 </span>
               </div>
             </article>

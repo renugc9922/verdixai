@@ -1,8 +1,8 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 function buildFallbackResponse(message, diseaseContext) {
-  const diseaseName = diseaseContext?.diseaseName || 'the crop issue'
-  const cropType = diseaseContext?.cropType || 'the crop'
+  const diseaseName = diseaseContext?.disease || diseaseContext?.diseaseName || 'the crop issue'
+  const cropType = diseaseContext?.crop || diseaseContext?.cropType || 'the crop'
   const severity = diseaseContext?.severity || 'Unknown'
 
   return [
@@ -17,8 +17,8 @@ function buildFallbackResponse(message, diseaseContext) {
 function buildPrompt(message, diseaseContext) {
   const contextLines = diseaseContext
     ? [
-        `Disease name: ${diseaseContext.diseaseName || 'Unknown'}`,
-        `Crop type: ${diseaseContext.cropType || 'Unknown'}`,
+        `Disease name: ${diseaseContext.disease || diseaseContext.diseaseName || 'Unknown'}`,
+        `Crop type: ${diseaseContext.crop || diseaseContext.cropType || 'Unknown'}`,
         `Severity: ${diseaseContext.severity || 'Unknown'}`,
         `Confidence: ${diseaseContext.confidence ?? 'Unknown'}`,
       ]

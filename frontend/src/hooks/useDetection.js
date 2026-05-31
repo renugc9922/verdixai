@@ -58,9 +58,16 @@ export function useDetection() {
       uploadedAt: new Date().toISOString(),
     }
 
+    console.log('[VERDIXAI] Uploaded image selected', {
+      fileName: file.name,
+      mimeType: file.type,
+      size: file.size,
+    })
+
     setErrorMessage('')
     setUploadedCrop(payload)
     setUploadedFile(file)
+    clearCropResult()
     saveCropSession(payload)
   }
 
@@ -76,13 +83,16 @@ export function useDetection() {
     setIsAnalyzing(true)
 
     try {
-      const response = await analyzeCropImage(uploadedFile)
-      saveCropResult({
-        ...response,
-        uploadedImage: uploadedCrop.previewUrl,
-        uploadedAt: uploadedCrop.uploadedAt,
-        fileName: uploadedCrop.fileName,
+      console.log('[VERDIXAI] Sending crop analysis request', {
+        fileName: uploadedFile.name,
+        mimeType: uploadedFile.type,
+        size: uploadedFile.size,
       })
+
+      const response = await analyzeCropImage(uploadedFile)
+      console.log('[VERDIXAI] Crop analysis response received', response)
+
+      saveCropResult(response)
       setProgress(100)
       navigate('/result')
     } catch (error) {

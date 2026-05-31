@@ -2,9 +2,11 @@ import { ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function ResultCard({ result }) {
-  const confidence = result.confidenceScore ?? result.confidence ?? 0
-  const severity = result.severityLevel ?? result.severity ?? 'Low'
+  const confidence = result.confidence
+  const severity = result.severity
   const symptoms = Array.isArray(result.symptoms) ? result.symptoms.join(', ') : result.symptoms
+  const crop = result.crop
+  const disease = result.disease
 
   return (
     <motion.article
@@ -17,26 +19,26 @@ export default function ResultCard({ result }) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.24em] text-emerald-100/55">AI Diagnosis</p>
-            <h1 className="mt-3 font-display text-4xl leading-tight text-white">{result.diseaseName}</h1>
+            <h1 className="mt-3 font-display text-4xl leading-tight text-white">{disease}</h1>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
             <ShieldCheck className="h-4 w-4 text-emerald-300" />
-            High confidence
+            {confidence != null ? `${confidence}% confidence` : 'AI result'}
           </span>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/55">Confidence</p>
-            <p className="mt-2 font-display text-2xl text-white">{confidence}%</p>
+            <p className="mt-2 font-display text-2xl text-white">{confidence != null ? `${confidence}%` : '—'}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/55">Severity</p>
-            <p className="mt-2 font-display text-2xl text-white">{severity}</p>
+            <p className="mt-2 font-display text-2xl text-white">{severity ?? '—'}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:col-span-2 xl:col-span-2">
             <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/55">Crop</p>
-            <p className="mt-2 font-display text-2xl text-white">{result.cropType}</p>
+            <p className="mt-2 font-display text-2xl text-white">{crop ?? '—'}</p>
           </div>
         </div>
 
