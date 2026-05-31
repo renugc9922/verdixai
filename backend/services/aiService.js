@@ -47,6 +47,7 @@ function buildAnalysisPrompt() {
 
 function extractJsonObject(text) {
   if (!text) {
+    console.error('[VERDIXAI] JSON parse error: AI response text is empty')
     return null
   }
 
@@ -54,7 +55,12 @@ function extractJsonObject(text) {
 
   try {
     return JSON.parse(trimmedText)
-  } catch {
+  } catch (primaryParseError) {
+    console.error('[VERDIXAI] JSON parse error (direct parse failed)', {
+      message: primaryParseError?.message,
+      preview: trimmedText.slice(0, 500),
+    })
+
     const firstBrace = trimmedText.indexOf('{')
     const lastBrace = trimmedText.lastIndexOf('}')
 
@@ -64,7 +70,11 @@ function extractJsonObject(text) {
 
     try {
       return JSON.parse(trimmedText.slice(firstBrace, lastBrace + 1))
-    } catch {
+    } catch (fallbackParseError) {
+      console.error('[VERDIXAI] JSON parse error (fallback parse failed)', {
+        message: fallbackParseError?.message,
+        preview: trimmedText.slice(firstBrace, Math.min(lastBrace + 1, firstBrace + 700)),
+      })
       return null
     }
   }
@@ -113,10 +123,18 @@ function normalizeAnalysisResult(rawResult) {
 }
 
 async function analyzeCropImageFromFile(file) {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+  const hasGeminiApiKey = Boolean(process.env.GEMINI_API_KEY)
+  const hasGoogleApiKey = Boolean(process.env.GOOGLE_API_KEY)
+
+  console.log('[VERDIXAI] API key presence check', {
+    hasGeminiApiKey,
+    hasGoogleApiKey,
+    usingKeySource: hasGeminiApiKey ? 'GEMINI_API_KEY' : hasGoogleApiKey ? 'GOOGLE_API_KEY' : 'none',
+  })
 
   if (!apiKey || apiKey === 'your_api_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured.')
+    throw new Error('Gemini API key is not configured. Set GEMINI_API_KEY or GOOGLE_API_KEY in backend/.env.')
   }
 
   if (!file?.path) {
@@ -128,14 +146,17 @@ async function analyzeCropImageFromFile(file) {
   const mimeType = file.mimetype || 'image/jpeg'
   const prompt = buildAnalysisPrompt()
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: {
-      temperature: 0.2,
-      responseMimeType: 'application/json',
-    },
+  console.log('[VERDIXAI] Uploaded file read for AI payload', {
+    filePath: file.path,
+    bufferBytes: imageBuffer.length,
+    base64Length: imageBase64.length,
   })
+
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const configuredModel = process.env.GEMINI_MODEL
+  const modelCandidates = configuredModel
+    ? [configuredModel]
+    : ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash']
 
   console.log('[VERDIXAI] AI request prepared', {
     fileName: file.originalname,
@@ -143,20 +164,85 @@ async function analyzeCropImageFromFile(file) {
     size: file.size,
   })
 
-  const result = await model.generateContent([
-    prompt,
-    {
-      inlineData: {
-        data: imageBase64,
-        mimeType,
-      },
-    },
-  ])
+  let result
+  let lastGeminiError = null
+
+  for (const modelName of modelCandidates) {
+    try {
+      console.log('[VERDIXAI] Attempting Gemini model', { modelName })
+
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+        },
+      })
+
+      console.log('[VERDIXAI] Before Gemini API call', {
+        modelName,
+        hasGeminiApiKey: hasGeminiApiKey || hasGoogleApiKey,
+      })
+
+      result = await model.generateContent([
+        {
+          text: prompt,
+        },
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType,
+          },
+        },
+      ])
+
+      console.log('[VERDIXAI] After Gemini API call', {
+        modelName,
+        hasGeminiApiKey: hasGeminiApiKey || hasGoogleApiKey,
+      })
+
+      console.log('[VERDIXAI] Gemini model succeeded', { modelName })
+      break
+    } catch (geminiError) {
+      lastGeminiError = geminiError
+      const errorStatus = geminiError?.status
+
+      console.error('[VERDIXAI] Gemini API call failed', {
+        modelName,
+        message: geminiError?.message,
+        status: errorStatus,
+        code: geminiError?.code,
+        details: geminiError?.errorDetails,
+        stack: geminiError?.stack,
+      })
+
+      // Only continue trying model fallbacks when the model name is unsupported.
+      if (errorStatus !== 404) {
+        let clientMessage = `Gemini request failed: ${geminiError?.message || 'Unknown Gemini error'}`
+
+        if (errorStatus === 429) {
+          clientMessage = 'Gemini quota exceeded or rate limited. Check Gemini billing/quota and retry.'
+        } else if (errorStatus === 401 || errorStatus === 403) {
+          clientMessage = 'Gemini authentication failed. Verify the API key and project permissions.'
+        }
+
+        const mappedError = new Error(clientMessage)
+        mappedError.status = errorStatus || 502
+        throw mappedError
+      }
+    }
+  }
+
+  if (!result) {
+    const mappedError = new Error(`Gemini request failed: ${lastGeminiError?.message || 'Unknown Gemini error'}`)
+    mappedError.status = lastGeminiError?.status || 502
+    throw mappedError
+  }
 
   const response = await result.response
   const responseText = response.text()
 
-  console.log('[VERDIXAI] AI raw response', responseText)
+  console.log('[VERDIXAI] Gemini raw response', responseText)
 
   const parsedResponse = extractJsonObject(responseText)
   const normalizedResponse = normalizeAnalysisResult(parsedResponse)

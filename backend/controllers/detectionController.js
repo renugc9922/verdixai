@@ -2,8 +2,13 @@ const { analyzeCropImageFromFile } = require('../services/aiService')
 
 async function analyzeCropImage(req, res) {
   try {
+    console.log('[VERDIXAI] analyzeCropImage controller reached')
+
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload an image using the cropImage field.' })
+      console.error('[VERDIXAI] analyzeCropImage missing file. Expected multipart field: cropImage')
+      const validationResponse = { success: false, message: 'Please upload an image using the cropImage field.' }
+      console.log('[VERDIXAI] Final API response', validationResponse)
+      return res.status(400).json(validationResponse)
     }
 
     console.log('[VERDIXAI] Uploaded image received', {
@@ -26,12 +31,23 @@ async function analyzeCropImage(req, res) {
 
     return res.json(apiResponse)
   } catch (error) {
-    console.error('Detection analysis failed:', error)
-
-    return res.status(500).json({
-      success: false,
-      message: 'Unable to analyze crop image at this time.',
+    console.error('[VERDIXAI] Detection analysis failed:', {
+      message: error?.message,
+      stack: error?.stack,
+      status: error?.status,
+      code: error?.code,
     })
+
+    const statusCode = Number.isInteger(error?.status) ? error.status : 500
+    const clientMessage = error?.message || 'Unable to analyze crop image at this time.'
+    const errorResponse = {
+      success: false,
+      message: clientMessage,
+    }
+
+    console.log('[VERDIXAI] Final API response', errorResponse)
+
+    return res.status(statusCode).json(errorResponse)
   }
 }
 

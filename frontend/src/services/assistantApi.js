@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://verdixai.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 export async function sendAssistantMessage(message, diseaseContext) {
   if (!message || !message.trim()) {

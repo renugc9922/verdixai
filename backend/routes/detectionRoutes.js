@@ -24,6 +24,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
-router.post('/analyze', upload.single('cropImage'), analyzeCropImage)
+router.post('/analyze', (req, res, next) => {
+  console.log('[VERDIXAI] /api/detection/analyze request received', {
+    method: req.method,
+    contentType: req.headers['content-type'],
+  })
+  next()
+}, upload.single('cropImage'), (req, res, next) => {
+  console.log('[VERDIXAI] Multer file binding result', {
+    hasFile: Boolean(req.file),
+    expectedField: 'cropImage',
+    bodyKeys: Object.keys(req.body || {}),
+  })
+  next()
+}, analyzeCropImage)
 
 module.exports = router
