@@ -1,12 +1,16 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
-export async function analyzeCropImage(file) {
+export async function analyzeCropImage(file, cropHint = '') {
   if (!file) {
     throw new Error('Please select a crop image before analyzing.')
   }
 
   const formData = new FormData()
   formData.append('cropImage', file)
+
+  if (cropHint) {
+    formData.append('cropHint', cropHint)
+  }
 
   let response
 

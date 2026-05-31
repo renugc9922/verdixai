@@ -1,7 +1,7 @@
 const fs = require('fs/promises')
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 const { getDemoFallbackResult } = require('../data/demoDiseaseData')
-const { matchDemoDiseaseKey } = require('../utils/demoDiseaseMatcher')
+const { isSupportedDemoCropKey, resolveDemoDiseaseKey } = require('../utils/demoDiseaseMatcher')
 
 function buildAnalysisPrompt() {
   return [
@@ -191,8 +191,24 @@ async function getGeminiAnalysis(file) {
   return normalizeGeminiResult(parsedResponse)
 }
 
-async function analyzeCropImageFromFile(file) {
-  const fallbackKey = matchDemoDiseaseKey(file?.originalname)
+async function analyzeCropImageFromFile(file, cropHint = '') {
+  const fallbackKey = resolveDemoDiseaseKey({
+    fileName: file?.originalname,
+    cropHint,
+  })
+  const normalizedHint = String(cropHint).toLowerCase()
+  const fallbackSource = isSupportedDemoCropKey(normalizedHint)
+    ? `selected crop: ${normalizedHint}`
+    : fallbackKey !== 'unknown'
+      ? `filename keyword: ${fallbackKey}`
+      : 'uploaded filename'
+
+  console.log('[VERDIXAI] Demo fallback resolver', {
+    fileName: file?.originalname,
+    cropHint,
+    resolvedKey: fallbackKey,
+    fallbackSource,
+  })
 
   try {
     return await getGeminiAnalysis(file)
@@ -201,7 +217,9 @@ async function analyzeCropImageFromFile(file) {
     const fallbackResult = getDemoFallbackResult(fallbackKey)
     return {
       ...fallbackResult,
-      note: fallbackResult.note || 'AI service is currently unavailable. Showing verified demo fallback result.',
+      note: fallbackKey === 'unknown'
+        ? 'AI service is currently unavailable. Showing verified demo fallback result.'
+        : `Verified demo fallback result based on ${fallbackSource}.`,
     }
   }
 }

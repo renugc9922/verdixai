@@ -96,7 +96,7 @@ export default function ResultPage() {
         <div className="space-y-4 lg:col-span-1">
           {result?.isFallback ? (
             <div className="rounded-[1.5rem] border border-amber-300/15 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 backdrop-blur-xl">
-              AI service is currently unavailable. Showing verified demo fallback result.
+              {result.note || 'AI service is currently unavailable. Showing verified demo fallback result.'}
             </div>
           ) : null}
 

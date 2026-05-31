@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { analyzeCropImage } from '../services/detectionApi'
 import { clearCropResult, clearCropSession, loadCropSession, saveCropResult, saveCropSession } from '../services/storage'
+import { deriveCropType, getDemoCropLabel, inferDemoCropKeyFromFileName } from '../utils/verdix'
 
 const loadingTexts = ['Analyzing Crop Patterns...', 'Running AI Detection...', 'Generating AI Report...']
 
@@ -10,6 +11,9 @@ export function useDetection() {
   const fileInputRef = useRef(null)
   const [uploadedCrop, setUploadedCrop] = useState(() => loadCropSession())
   const [uploadedFile, setUploadedFile] = useState(null)
+  const [detectedCropKey, setDetectedCropKey] = useState('')
+  const [selectedCropKey, setSelectedCropKey] = useState('')
+  const [needsCropSelection, setNeedsCropSelection] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisStage, setAnalysisStage] = useState(0)
@@ -35,7 +39,7 @@ export function useDetection() {
     }
   }, [isAnalyzing])
 
-  const validateAndStoreFile = async (file, fileToDataUrl, deriveCropType) => {
+  const validateAndStoreFile = async (file, fileToDataUrl) => {
     if (!file) {
       return
     }
@@ -50,10 +54,12 @@ export function useDetection() {
     }
 
     const previewUrl = await fileToDataUrl(file)
+    const cropKey = inferDemoCropKeyFromFileName(file.name)
     const cropType = deriveCropType(file.name)
     const payload = {
       previewUrl,
       cropType,
+      cropKey,
       fileName: file.name,
       uploadedAt: new Date().toISOString(),
     }
@@ -67,12 +73,42 @@ export function useDetection() {
     setErrorMessage('')
     setUploadedCrop(payload)
     setUploadedFile(file)
+    setDetectedCropKey(cropKey)
+    setSelectedCropKey(cropKey)
+    setNeedsCropSelection(!cropKey)
     clearCropResult()
     saveCropSession(payload)
   }
 
+  const handleCropSelectionChange = (cropKey) => {
+    setSelectedCropKey(cropKey)
+    setNeedsCropSelection(!cropKey && !detectedCropKey)
+
+    setUploadedCrop((currentCrop) => {
+      if (!currentCrop) {
+        return currentCrop
+      }
+
+      const effectiveKey = cropKey || detectedCropKey
+
+      return {
+        ...currentCrop,
+        cropKey: effectiveKey,
+        cropType: effectiveKey ? getDemoCropLabel(effectiveKey) : 'Unknown crop',
+      }
+    })
+  }
+
   const handleAnalyze = async () => {
     if (!uploadedCrop || !uploadedFile || isAnalyzing) {
+      return
+    }
+
+    const cropHint = selectedCropKey || detectedCropKey
+
+    if (!cropHint) {
+      setNeedsCropSelection(true)
+      setErrorMessage('Please select a crop type before analyzing this image.')
       return
     }
 
@@ -87,9 +123,10 @@ export function useDetection() {
         fileName: uploadedFile.name,
         mimeType: uploadedFile.type,
         size: uploadedFile.size,
+        cropHint,
       })
 
-      const response = await analyzeCropImage(uploadedFile)
+      const response = await analyzeCropImage(uploadedFile, cropHint)
       console.log('[VERDIXAI] Crop analysis response received', response)
 
       saveCropResult(response)
@@ -105,6 +142,9 @@ export function useDetection() {
   const handleRemove = () => {
     setUploadedCrop(null)
     setUploadedFile(null)
+    setDetectedCropKey('')
+    setSelectedCropKey('')
+    setNeedsCropSelection(false)
     setErrorMessage('')
 
     if (fileInputRef.current) {
@@ -120,6 +160,9 @@ export function useDetection() {
     uploadedCrop,
     setUploadedCrop,
     uploadedFile,
+    detectedCropKey,
+    selectedCropKey,
+    needsCropSelection,
     isDragging,
     setIsDragging,
     isAnalyzing,
@@ -131,6 +174,7 @@ export function useDetection() {
     setAnalysisStage,
     setIsAnalyzing,
     validateAndStoreFile,
+    handleCropSelectionChange,
     handleAnalyze,
     handleRemove,
     loadingTexts,

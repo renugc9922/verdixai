@@ -35,6 +35,21 @@ export const features = [
 
 export const loadingTexts = ['Analyzing Crop Patterns...', 'Running AI Detection...', 'Generating AI Report...']
 
+export const demoCropOptions = [
+  { value: '', label: 'Auto detect' },
+  { value: 'strawberry', label: 'Strawberry' },
+  { value: 'tomato', label: 'Tomato' },
+  { value: 'potato', label: 'Potato' },
+  { value: 'mango', label: 'Mango' },
+  { value: 'rice', label: 'Rice' },
+  { value: 'cotton', label: 'Cotton' },
+  { value: 'corn', label: 'Corn' },
+  { value: 'grape', label: 'Grape' },
+  { value: 'apple', label: 'Apple' },
+]
+
+const demoCropLabelMap = Object.fromEntries(demoCropOptions.filter((item) => item.value).map((item) => [item.value, item.label]))
+
 export const unknownAnalysisResult = {
   crop: 'Unknown',
   disease: 'Unable to identify clearly',
@@ -44,6 +59,26 @@ export const unknownAnalysisResult = {
   causes: 'Unable to determine.',
   treatment: 'Please upload a clearer image.',
   prevention: 'Capture the leaf in proper lighting.',
+}
+
+export function inferDemoCropKeyFromFileName(fileName = '') {
+  const normalizedName = String(fileName).toLowerCase()
+
+  if (normalizedName.includes('strawberry')) return 'strawberry'
+  if (normalizedName.includes('tomato')) return 'tomato'
+  if (normalizedName.includes('potato')) return 'potato'
+  if (normalizedName.includes('mango')) return 'mango'
+  if (normalizedName.includes('rice')) return 'rice'
+  if (normalizedName.includes('cotton')) return 'cotton'
+  if (normalizedName.includes('corn') || normalizedName.includes('maize')) return 'corn'
+  if (normalizedName.includes('grape')) return 'grape'
+  if (normalizedName.includes('apple')) return 'apple'
+
+  return ''
+}
+
+export function getDemoCropLabel(cropKey) {
+  return demoCropLabelMap[cropKey] || 'Unknown crop'
 }
 
 export function fileToDataUrl(file) {
@@ -66,11 +101,15 @@ export function formatDateTime(value) {
 }
 
 export function deriveCropType(fileName) {
-  const normalizedName = fileName.toLowerCase()
+  const cropKey = inferDemoCropKeyFromFileName(fileName)
 
-  if (normalizedName.includes('leaf') || normalizedName.includes('plant')) return 'Uploaded Crop'
-  if (normalizedName.includes('image') || normalizedName.includes('scan')) return 'Uploaded Crop'
-  return 'Crop Preview'
+  if (cropKey) {
+    return getDemoCropLabel(cropKey)
+  }
+
+  if (String(fileName).toLowerCase().includes('leaf') || String(fileName).toLowerCase().includes('plant')) return 'Uploaded Crop'
+  if (String(fileName).toLowerCase().includes('image') || String(fileName).toLowerCase().includes('scan')) return 'Uploaded Crop'
+  return 'Unknown crop'
 }
 
 export function getSeverityTone(severity) {

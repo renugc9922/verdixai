@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import UploadCard from '../components/UploadCard'
 import Loader from '../components/Loader'
 import { useDetection } from '../hooks/useDetection'
-import { deriveCropType, fileToDataUrl } from '../utils/verdix'
+import { demoCropOptions, fileToDataUrl } from '../utils/verdix'
 
 export default function DetectPage() {
   const {
@@ -16,7 +16,10 @@ export default function DetectPage() {
     analysisStage,
     progress,
     errorMessage,
+    needsCropSelection,
+    selectedCropKey,
     validateAndStoreFile,
+    handleCropSelectionChange,
     handleAnalyze,
     handleRemove,
     loadingTexts,
@@ -24,14 +27,14 @@ export default function DetectPage() {
 
   const handleInputChange = (event) => {
     const file = event.target.files?.[0]
-    void validateAndStoreFile(file, fileToDataUrl, deriveCropType)
+    void validateAndStoreFile(file, fileToDataUrl)
   }
 
   const handleDrop = (event) => {
     event.preventDefault()
     setIsDragging(false)
     const file = event.dataTransfer.files?.[0]
-    void validateAndStoreFile(file, fileToDataUrl, deriveCropType)
+    void validateAndStoreFile(file, fileToDataUrl)
   }
 
   return (
@@ -114,7 +117,7 @@ export default function DetectPage() {
               isDragging={isDragging}
               actions={
                 <>
-                  <button type="button" onClick={handleAnalyze} disabled={!uploadedCrop || isAnalyzing} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3.5 font-semibold text-[#04110b] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-400/35 disabled:text-[#04110b]/60">
+                  <button type="button" onClick={handleAnalyze} disabled={!uploadedCrop || isAnalyzing || (needsCropSelection && !selectedCropKey)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3.5 font-semibold text-[#04110b] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-400/35 disabled:text-[#04110b]/60">
                     <Upload className="h-4 w-4" />
                     Analyze Crop
                   </button>
@@ -125,6 +128,24 @@ export default function DetectPage() {
                 </>
               }
             />
+
+            {needsCropSelection ? (
+              <div className="mt-5 rounded-[1.5rem] border border-emerald-300/15 bg-white/5 p-4 backdrop-blur-md">
+                <p className="text-sm uppercase tracking-[0.24em] text-emerald-100/55">Crop selection</p>
+                <p className="mt-2 text-sm text-emerald-100/65">The image name does not clearly indicate a supported crop. Choose the closest crop type to continue.</p>
+                <select
+                  value={selectedCropKey}
+                  onChange={(event) => handleCropSelectionChange(event.target.value)}
+                  className="mt-4 w-full rounded-2xl border border-white/10 bg-[#07140f]/90 px-4 py-3 text-sm text-white outline-none"
+                >
+                  {demoCropOptions.map((option) => (
+                    <option key={option.value || 'auto-detect'} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
           </div>
         </motion.section>
       </main>

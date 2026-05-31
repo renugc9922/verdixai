@@ -1,3 +1,5 @@
+const supportedDemoCropKeys = new Set(['strawberry', 'tomato', 'potato', 'mango', 'rice', 'cotton', 'corn', 'grape', 'apple'])
+
 function matchDemoDiseaseKey(fileName = '') {
   const normalizedName = String(fileName).toLowerCase()
 
@@ -14,6 +16,22 @@ function matchDemoDiseaseKey(fileName = '') {
   return 'unknown'
 }
 
+function resolveDemoDiseaseKey({ fileName = '', cropHint = '' } = {}) {
+  const normalizedHint = String(cropHint).toLowerCase()
+
+  if (supportedDemoCropKeys.has(normalizedHint)) {
+    return normalizedHint
+  }
+
+  return matchDemoDiseaseKey(fileName)
+}
+
+function isSupportedDemoCropKey(cropKey = '') {
+  return supportedDemoCropKeys.has(String(cropKey).toLowerCase())
+}
+
 module.exports = {
   matchDemoDiseaseKey,
+  resolveDemoDiseaseKey,
+  isSupportedDemoCropKey,
 }
