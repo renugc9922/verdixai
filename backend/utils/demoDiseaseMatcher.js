@@ -30,8 +30,23 @@ function isSupportedDemoCropKey(cropKey = '') {
   return supportedDemoCropKeys.has(String(cropKey).toLowerCase())
 }
 
+function getSupportedDemoFilenames() {
+  return [
+    'strawberry_leaf_spot.jpg',
+    'tomato_late_blight.jpg',
+    'potato_early_blight.jpg',
+    'mango_anthracnose.jpg',
+    'rice_leaf_blast.jpg',
+    'cotton_leaf_curl.jpg',
+    'corn_rust.jpg',
+    'grape_black_rot.jpg',
+    'apple_scab.jpg',
+  ]
+}
+
 module.exports = {
   matchDemoDiseaseKey,
   resolveDemoDiseaseKey,
   isSupportedDemoCropKey,
+  getSupportedDemoFilenames,
 }

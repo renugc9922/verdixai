@@ -35,6 +35,18 @@ export const features = [
 
 export const loadingTexts = ['Analyzing Crop Patterns...', 'Running AI Detection...', 'Generating AI Report...']
 
+export const supportedDemoFilenames = [
+  'strawberry_leaf_spot.jpg',
+  'tomato_late_blight.jpg',
+  'potato_early_blight.jpg',
+  'mango_anthracnose.jpg',
+  'rice_leaf_blast.jpg',
+  'cotton_leaf_curl.jpg',
+  'corn_rust.jpg',
+  'grape_black_rot.jpg',
+  'apple_scab.jpg',
+]
+
 export const demoCropOptions = [
   { value: '', label: 'Auto detect' },
   { value: 'strawberry', label: 'Strawberry' },

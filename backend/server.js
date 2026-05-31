@@ -21,7 +21,11 @@ app.use(express.json())
 app.use('/uploads', express.static(uploadsDir))
 
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'VERDIXAI backend is running' })
+  res.json({
+    success: true,
+    message: 'VERDIXAI backend is running',
+    geminiAvailable: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+  })
 })
 
 app.use('/api/detection', detectionRoutes)

@@ -16,11 +16,10 @@ async function analyzeCropImage(req, res) {
       mimeType: req.file.mimetype,
       size: req.file.size,
       path: req.file.path,
-      cropHint: req.body?.cropHint,
     })
 
     console.log('[VERDIXAI] Sending uploaded image to AI analysis')
-    const analysis = await analyzeCropImageFromFile(req.file, req.body?.cropHint)
+    const analysis = await analyzeCropImageFromFile(req.file)
     console.log('[VERDIXAI] AI analysis response', analysis)
 
     const apiResponse = {

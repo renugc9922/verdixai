@@ -1,5 +1,15 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
+export async function getBackendHealth() {
+  const response = await fetch(`${API_BASE_URL}/api/health`)
+
+  if (!response.ok) {
+    return { success: false, geminiAvailable: false }
+  }
+
+  return response.json()
+}
+
 export async function analyzeCropImage(file, cropHint = '') {
   if (!file) {
     throw new Error('Please select a crop image before analyzing.')
