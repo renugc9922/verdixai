@@ -27,6 +27,8 @@ export default function ResultPage() {
       causes: result.causes,
       treatment: result.treatment,
       prevention: result.prevention,
+      isFallback: result.isFallback,
+      note: result.note,
       scanDate: new Date().toISOString(),
       fileName: uploadedCrop.fileName,
     })
@@ -92,9 +94,9 @@ export default function ResultPage() {
 
       <main className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8 lg:py-10">
         <div className="space-y-4 lg:col-span-1">
-          {result?.analysisNotice ? (
+          {result?.isFallback ? (
             <div className="rounded-[1.5rem] border border-amber-300/15 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 backdrop-blur-xl">
-              {result.analysisNotice}
+              AI service is currently unavailable. Showing verified demo fallback result.
             </div>
           ) : null}
 

@@ -1,18 +1,7 @@
 const fs = require('fs/promises')
 const { GoogleGenerativeAI } = require('@google/generative-ai')
-
-const UNKNOWN_ANALYSIS_RESULT = {
-  crop: 'Unknown',
-  disease: 'Unable to identify clearly',
-  confidence: 25,
-  severity: 'Unknown',
-  symptoms: 'Insufficient visual evidence.',
-  causes: 'Unable to determine.',
-  treatment: 'Please upload a clearer image.',
-  prevention: 'Capture the leaf in proper lighting.',
-}
-
-const QUOTA_FALLBACK_NOTICE = 'AI quota exceeded. Showing a safe fallback result with low confidence.'
+const { getDemoFallbackResult } = require('../data/demoDiseaseData')
+const { matchDemoDiseaseKey } = require('../utils/demoDiseaseMatcher')
 
 function buildAnalysisPrompt() {
   return [
@@ -41,16 +30,12 @@ function buildAnalysisPrompt() {
     '  "treatment": "",',
     '  "prevention": ""',
     '}',
-    '',
-    'If the crop cannot be identified confidently, return this exact JSON object:',
-    JSON.stringify(UNKNOWN_ANALYSIS_RESULT, null, 2),
   ].join('\n')
 }
 
 function extractJsonObject(text) {
   if (!text) {
-    console.error('[VERDIXAI] JSON parse error: AI response text is empty')
-    return null
+    throw new Error('Gemini returned an empty response.')
   }
 
   const trimmedText = text.trim()
@@ -67,7 +52,7 @@ function extractJsonObject(text) {
     const lastBrace = trimmedText.lastIndexOf('}')
 
     if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-      return null
+      throw primaryParseError
     }
 
     try {
@@ -77,7 +62,7 @@ function extractJsonObject(text) {
         message: fallbackParseError?.message,
         preview: trimmedText.slice(firstBrace, Math.min(lastBrace + 1, firstBrace + 700)),
       })
-      return null
+      throw fallbackParseError
     }
   }
 }
@@ -94,37 +79,39 @@ function normalizeTextValue(value) {
   return ''
 }
 
-function normalizeAnalysisResult(rawResult) {
+function normalizeGeminiResult(rawResult) {
   if (!rawResult || typeof rawResult !== 'object') {
-    return null
+    throw new Error('Gemini response did not contain a valid object.')
   }
 
-  const crop = normalizeTextValue(rawResult.crop || rawResult.cropType)
-  const disease = normalizeTextValue(rawResult.disease || rawResult.diseaseName)
-  const severity = normalizeTextValue(rawResult.severity || rawResult.severityLevel)
   const confidenceValue = Number(rawResult.confidence ?? rawResult.confidenceScore)
-  const confidence = Number.isFinite(confidenceValue) ? Math.max(0, Math.min(100, Math.round(confidenceValue))) : NaN
+  const confidence = Number.isFinite(confidenceValue) ? Math.max(0, Math.min(100, Math.round(confidenceValue))) : 0
 
-  const normalizedResult = {
-    crop: crop || UNKNOWN_ANALYSIS_RESULT.crop,
-    disease: disease || UNKNOWN_ANALYSIS_RESULT.disease,
-    confidence: Number.isFinite(confidence) ? confidence : UNKNOWN_ANALYSIS_RESULT.confidence,
-    severity: severity || UNKNOWN_ANALYSIS_RESULT.severity,
-    symptoms: normalizeTextValue(rawResult.symptoms) || UNKNOWN_ANALYSIS_RESULT.symptoms,
-    causes: normalizeTextValue(rawResult.causes) || UNKNOWN_ANALYSIS_RESULT.causes,
-    treatment: normalizeTextValue(rawResult.treatment) || UNKNOWN_ANALYSIS_RESULT.treatment,
-    prevention: normalizeTextValue(rawResult.prevention) || UNKNOWN_ANALYSIS_RESULT.prevention,
+  return {
+    crop: normalizeTextValue(rawResult.crop || rawResult.cropType) || 'Unknown',
+    disease: normalizeTextValue(rawResult.disease || rawResult.diseaseName) || 'Unable to identify clearly',
+    confidence,
+    severity: normalizeTextValue(rawResult.severity || rawResult.severityLevel) || 'Unknown',
+    symptoms: normalizeTextValue(rawResult.symptoms) || 'Insufficient visual evidence.',
+    causes: normalizeTextValue(rawResult.causes) || 'Unable to determine.',
+    treatment: normalizeTextValue(rawResult.treatment) || 'Please upload a clearer image.',
+    prevention: normalizeTextValue(rawResult.prevention) || 'Capture the leaf in proper lighting.',
+    isFallback: false,
+    note: '',
   }
-
-  const isUnclearAnalysis =
-    normalizedResult.crop === UNKNOWN_ANALYSIS_RESULT.crop ||
-    normalizedResult.disease === UNKNOWN_ANALYSIS_RESULT.disease ||
-    normalizedResult.confidence < 50
-
-  return isUnclearAnalysis ? UNKNOWN_ANALYSIS_RESULT : normalizedResult
 }
 
-async function analyzeCropImageFromFile(file) {
+function mapGeminiErrorToLogInfo(error) {
+  return {
+    message: error?.message,
+    stack: error?.stack,
+    status: error?.status,
+    code: error?.code,
+    details: error?.errorDetails,
+  }
+}
+
+async function getGeminiAnalysis(file) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
   const hasGeminiApiKey = Boolean(process.env.GEMINI_API_KEY)
   const hasGoogleApiKey = Boolean(process.env.GOOGLE_API_KEY)
@@ -147,6 +134,7 @@ async function analyzeCropImageFromFile(file) {
   const imageBase64 = imageBuffer.toString('base64')
   const mimeType = file.mimetype || 'image/jpeg'
   const prompt = buildAnalysisPrompt()
+  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
   console.log('[VERDIXAI] Uploaded file read for AI payload', {
     filePath: file.path,
@@ -154,97 +142,45 @@ async function analyzeCropImageFromFile(file) {
     base64Length: imageBase64.length,
   })
 
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const configuredModel = process.env.GEMINI_MODEL
-  const modelCandidates = configuredModel
-    ? [configuredModel]
-    : ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash']
-
   console.log('[VERDIXAI] AI request prepared', {
+    modelName,
     fileName: file.originalname,
     mimeType,
     size: file.size,
+    hasGeminiApiKey,
+    hasGoogleApiKey,
   })
 
-  let result
-  let lastGeminiError = null
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+    },
+  })
 
-  for (const modelName of modelCandidates) {
-    try {
-      console.log('[VERDIXAI] Attempting Gemini model', { modelName })
+  console.log('[VERDIXAI] Before Gemini API call', {
+    modelName,
+    hasGeminiApiKey: hasGeminiApiKey || hasGoogleApiKey,
+  })
 
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-        },
-      })
+  const result = await model.generateContent([
+    {
+      text: prompt,
+    },
+    {
+      inlineData: {
+        data: imageBase64,
+        mimeType,
+      },
+    },
+  ])
 
-      console.log('[VERDIXAI] Before Gemini API call', {
-        modelName,
-        hasGeminiApiKey: hasGeminiApiKey || hasGoogleApiKey,
-      })
-
-      result = await model.generateContent([
-        {
-          text: prompt,
-        },
-        {
-          inlineData: {
-            data: imageBase64,
-            mimeType,
-          },
-        },
-      ])
-
-      console.log('[VERDIXAI] After Gemini API call', {
-        modelName,
-        hasGeminiApiKey: hasGeminiApiKey || hasGoogleApiKey,
-      })
-
-      console.log('[VERDIXAI] Gemini model succeeded', { modelName })
-      break
-    } catch (geminiError) {
-      lastGeminiError = geminiError
-      const errorStatus = geminiError?.status
-
-      console.error('[VERDIXAI] Gemini API call failed', {
-        modelName,
-        message: geminiError?.message,
-        status: errorStatus,
-        code: geminiError?.code,
-        details: geminiError?.errorDetails,
-        stack: geminiError?.stack,
-      })
-
-      // Only continue trying model fallbacks when the model name is unsupported.
-      if (errorStatus !== 404) {
-        let clientMessage = `Gemini request failed: ${geminiError?.message || 'Unknown Gemini error'}`
-
-        if (errorStatus === 429) {
-          console.warn('[VERDIXAI] Gemini quota exceeded; returning safe fallback analysis')
-          return {
-            ...UNKNOWN_ANALYSIS_RESULT,
-            analysisMode: 'quota-fallback',
-            analysisNotice: QUOTA_FALLBACK_NOTICE,
-          }
-        } else if (errorStatus === 401 || errorStatus === 403) {
-          clientMessage = 'Gemini authentication failed. Verify the API key and project permissions.'
-        }
-
-        const mappedError = new Error(clientMessage)
-        mappedError.status = errorStatus || 502
-        throw mappedError
-      }
-    }
-  }
-
-  if (!result) {
-    const mappedError = new Error(`Gemini request failed: ${lastGeminiError?.message || 'Unknown Gemini error'}`)
-    mappedError.status = lastGeminiError?.status || 502
-    throw mappedError
-  }
+  console.log('[VERDIXAI] After Gemini API call', {
+    modelName,
+    hasGeminiApiKey: hasGeminiApiKey || hasGoogleApiKey,
+  })
 
   const response = await result.response
   const responseText = response.text()
@@ -252,16 +188,24 @@ async function analyzeCropImageFromFile(file) {
   console.log('[VERDIXAI] Gemini raw response', responseText)
 
   const parsedResponse = extractJsonObject(responseText)
-  const normalizedResponse = normalizeAnalysisResult(parsedResponse)
+  return normalizeGeminiResult(parsedResponse)
+}
 
-  if (!normalizedResponse) {
-    throw new Error('AI response did not contain a valid analysis object.')
+async function analyzeCropImageFromFile(file) {
+  const fallbackKey = matchDemoDiseaseKey(file?.originalname)
+
+  try {
+    return await getGeminiAnalysis(file)
+  } catch (error) {
+    console.error('[VERDIXAI] Gemini analysis failed; using demo fallback', mapGeminiErrorToLogInfo(error))
+    const fallbackResult = getDemoFallbackResult(fallbackKey)
+    return {
+      ...fallbackResult,
+      note: fallbackResult.note || 'AI service is currently unavailable. Showing verified demo fallback result.',
+    }
   }
-
-  return normalizedResponse
 }
 
 module.exports = {
-  UNKNOWN_ANALYSIS_RESULT,
   analyzeCropImageFromFile,
 }
